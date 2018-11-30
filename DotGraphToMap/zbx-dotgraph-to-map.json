@@ -2,11 +2,7 @@
 	"zbx_host": "http://localhost",
 	"zbx_login": "admin",
 	"zbx_password": "###",
-	"host_group_l": [
-		"net"
-	],
-	"file_dot_path": "example\\0.dot",
-	"file_json_path": "example\\0.json",
+	"dot_engine": "neato",
 	"zbx_map_height": 1024,
 	"line_decor": {
 		"ok": {

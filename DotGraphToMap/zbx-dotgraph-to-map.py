@@ -1,3 +1,4 @@
+import sys as m_sys
 import os as m_os
 import re as m_re
 import json as m_json
@@ -6,11 +7,13 @@ from pyzabbix import ZabbixAPI as CZbx
 
 #######################################
 
-dct_opt: dict = {}
 str_opt_path: str = m_os.path.splitext(m_os.path.realpath(__file__))[0] + '.json'
 
 with open(str_opt_path, 'r+t') as rd_js:
     dct_opt: dict = m_json.load(rd_js)
+
+str_file_dot_path: str = m_os.path.abspath(m_sys.argv[1])
+str_file_json_path: str = m_os.path.splitext(str_file_dot_path)[0] + '.json'
 
 #######################################
 
@@ -82,13 +85,13 @@ TGEdge = ntuple('TGEdge', ['tail', 'head'])
 def input_parse(i_dct_opt: dict) -> object:
     dct_opt = i_dct_opt
 
-    with open(dct_opt['file_json_path'], 'r+t') as rd_js:
+    with open(str_file_json_path, 'r+t') as rd_js:
         dct_cnn: dict = m_json.load(rd_js)
 
     obj_node_edge_d: dict = dict([(tpl_kv[0], TZbxEdge(icon=tpl_kv[1]['map_icon_off'], edge_d=tpl_kv[1]['map_edge'])) for tpl_kv in dct_cnn.items()])
     del dct_cnn
 
-    with m_os.popen('neato -T plain-ext "{0}"'.format(dct_opt['file_dot_path'])) as rd:
+    with m_os.popen('{0} -T plain-ext "{1}"'.format(dct_opt['dot_engine'], str_file_dot_path)) as rd:
         str_grtext: str = rd.read()
 
     num_mode: int = 0
@@ -142,10 +145,6 @@ def input_parse(i_dct_opt: dict) -> object:
             if lst_gv_attr[0] == 'stop':
                 break
 
-    #for obj_graph_node in obj_graph.node_l:
-    #    print(obj_graph_node)
-
-    #print(obj_node_edge_d)
     return obj_graph
 
 
@@ -187,12 +186,26 @@ def _zbxmap_shape_calc\
 ,   i_num_xsc: float
 ,   i_num_ysc: float
 ,   i_bln_invertxy: bool
+,   i_str_dot_eng: str
 ,   i_obj_node: TGNode
 ) -> dict:
-    num_x: int = int((i_obj_graph.width + i_obj_node.xpoint * 0.85) * i_num_xsc)
-    num_y: int = int((i_obj_graph.height + i_obj_node.ypoint * 0.85) * i_num_ysc)
-    num_w: int = int(i_obj_node.width * i_num_xsc)
-    num_h: int = int(i_obj_node.height * i_num_ysc)
+    if i_str_dot_eng == 'neato':
+        num_x: int = int((i_obj_graph.width + i_obj_node.xpoint * 0.85) * i_num_xsc)
+        num_y: int = int((i_obj_graph.height + i_obj_node.ypoint * 0.85) * i_num_ysc)
+        num_w: int = int(i_obj_node.width * i_num_xsc)
+        num_h: int = int(i_obj_node.height * i_num_ysc)
+    elif i_str_dot_eng == 'fdp':
+        num_x: int = int((i_obj_node.xpoint * 1.9) * i_num_xsc)
+        num_y: int = int((i_obj_node.ypoint * 1.9) * i_num_ysc)
+        num_w: int = int(i_obj_node.width * i_num_xsc)
+        num_h: int = int(i_obj_node.height * i_num_ysc)
+    elif i_str_dot_eng == 'sfdp':
+        num_x: int = int((i_obj_node.xpoint * 1.9) * i_num_xsc)
+        num_y: int = int((i_obj_node.ypoint * 1.9) * i_num_ysc)
+        num_w: int = int(i_obj_node.width * i_num_xsc)
+        num_h: int = int(i_obj_node.height * i_num_ysc)
+    else:
+        raise Exception('Graphviz engine not supported')
 
     if i_bln_invertxy:
         return {'x': num_y, 'y': num_x, 'width': num_h, 'height': num_w}
@@ -248,7 +261,7 @@ def _zbx_trg_find(i_obj_gnode_head: TGNode, i_obj_gnode_tail: TGNode) -> dict:
 
 
 dct_zmap: dict \
-=   {   'name': m_os.path.basename(dct_opt['file_dot_path'])
+=   {   'name': m_os.path.basename(str_file_dot_path)
     ,   'private': 0
     ,   'label_type': 0
     ,   'severity_min': 2
@@ -274,7 +287,7 @@ for num_zmnode_id in range(0, len(obj_graph.node_l)):
         if dct_zimg['name'] == obj_node.zbx_edge.icon:
             dct_zmap_node['iconid_off'] = str(dct_zimg['imageid'])
 
-    dct_zmap_node.update(_zbxmap_shape_calc(obj_graph, num_xsc, num_ysc, bln_invert_xy, obj_node))
+    dct_zmap_node.update(_zbxmap_shape_calc( obj_graph, num_xsc, num_ysc, bln_invert_xy, dct_opt['dot_engine'], obj_node))
     dct_zmap_node_l.append(dct_zmap_node)
 
 dct_zmap['selements'] = dct_zmap_node_l
@@ -338,7 +351,7 @@ with open(r'd:\try.json', 'w+t') as wr_js:
 
 str_zbx_mapid: str = None
 
-for dct_zbx_map in obj_zbx.map.get(output=['sysmapid'], search={'name': dct_zmap['name']}):
+for dct_zbx_map in obj_zbx.map.get(output=['sysmapid', 'name'], search={'name': dct_zmap['name']}):
     if dct_zbx_map['name'] == dct_zmap['name']:
         str_zbx_mapid = str(dct_zbx_map['sysmapid'][0])
 

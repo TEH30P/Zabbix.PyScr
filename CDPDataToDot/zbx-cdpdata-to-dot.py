@@ -1,15 +1,14 @@
 import os as m_os
-import pyzabbix as m_zbx
+from pyzabbix import ZabbixAPI as CZbx
 import json as m_json
 import re as m_re
 
 #######################################
 
-dct_opt: dict = {}
 str_opt_path: str = m_os.path.splitext(m_os.path.realpath(__file__))[0] + '.json'
 
 with open(str_opt_path, 'r+t') as rd_js:
-    dct_opt = m_json.load(rd_js)
+    dct_opt: dict = m_json.load(rd_js)
 
 #######################################
 
@@ -22,7 +21,7 @@ def cdp_icon_get(i_cdp: str) -> str:
     return str(dct_opt['node_icon_def'])
 
 
-obj_zbx = m_zbx.ZabbixAPI(dct_opt["zbx_host"])
+obj_zbx = CZbx(dct_opt["zbx_host"])
 obj_zbx.login(dct_opt['zbx_login'], dct_opt['zbx_password'])
 
 str_groupid_l = []
@@ -36,7 +35,7 @@ dct_hid: dict = {}
 dct_hname: dict = {}
 str_hunk_s: set = set()
 tpl_hcnn_s: set = set()
-dct_hcnn_d: dict = dict()
+dct_hcnn_d: dict = {}
 
 for dct_h in obj_zbx.host.get(output=['name', 'host'], groupids=str_groupid_l):
     zbx_item_get_para: dict = dct_opt['cdp_item_filt'].copy()
