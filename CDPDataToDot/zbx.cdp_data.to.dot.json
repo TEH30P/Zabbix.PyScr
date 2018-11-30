@@ -1,0 +1,32 @@
+{
+	"zbx_host": "http://localhost",
+	"zbx_login": "admin",
+	"zbx_password": "###",
+	"host_group_l": [
+		"net"
+	],
+	"cdp_item_filt": {
+		"search": {
+			"key_": "net.snmp2[cdp"
+		}
+	},
+	"node_icon_def": "Cloud_(48)",
+	"node_icon_off": {
+		".*": "Router_symbol_(48)"
+	},
+	"edge_trigger": {
+		"description": [
+			"High error rate",
+			"Link down",
+			"High bandwidth usage"
+		],
+		"item": [
+			"net.snmp2[ifOperStatus.{#LOCAL_IF_OID}]",
+			"net.snmp2[ifInErrors.{#LOCAL_IF_OID}]",
+			"net.snmp2[ifOutErrors.{#LOCAL_IF_OID}]",
+			"net.snmp2[ifHighSpeed.{#LOCAL_IF_OID}]"
+		]
+	},
+	"file_dot_path": "cdp.dot",
+	"file_json_path": "cdp.json"
+}

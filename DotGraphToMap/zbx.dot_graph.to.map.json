@@ -1,0 +1,35 @@
+{
+	"zbx_host": "http://localhost",
+	"zbx_login": "admin",
+	"zbx_password": "###",
+	"host_group_l": [
+		"net"
+	],
+	"file_dot_path": "example\\0.dot",
+	"file_json_path": "example\\0.json",
+	"zbx_map_height": 1024,
+	"line_decor": {
+		"ok": {
+			"color": "00AA00"
+		},
+		"ncl": {
+			"color": "97AAB3"
+		},
+		"inf": {
+			"color": "7499FF"
+		},
+		"wrn": {
+			"color": "FFC859"
+		},
+		"avg": {
+			"color": "FFA059"
+		},
+		"hgh": {
+			"color": "E97659"
+		},
+		"dss": {
+			"color": "E45959",
+			"drawtype": 3
+		}
+	}
+}

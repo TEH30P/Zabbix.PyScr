@@ -1,0 +1,48 @@
+{
+	"unk0": {
+		"map_icon_off": "Cloud_(48)",
+		"map_edge": {}
+	},
+	"id1030": {
+		"map_icon_off": "Router_symbol_(48)",
+		"map_edge": {
+			"id1031": {
+				"description": [
+					"Link down"
+				],
+				"item": [
+					"net.snmp2[ifOperStatus.436244480]"
+				]
+			},
+			"unk0": {
+				"description": [
+					"Link down"
+				],
+				"item": [
+					"net.snmp2[ifOperStatus.436244480]"
+				]
+			}
+		}
+	},
+	"id1031": {
+		"map_icon_off": "Router_symbol_(48)",
+		"map_edge": {
+			"id1030": {
+				"description": [
+					"Link down"
+				],
+				"item": [
+					"net.snmp2[ifOperStatus.436244480]"
+				]
+			},
+			"unk0": {
+				"description": [
+					"Link down"
+				],
+				"item": [
+					"net.snmp2[ifOperStatus.436244480]"
+				]
+			}
+		}
+	}
+}

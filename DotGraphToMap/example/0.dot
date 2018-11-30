@@ -1,0 +1,12 @@
+graph Zbx {
+    overlap=false; sep="+0";
+    edge [splines=polyline];
+
+    id1030 [label="Fluttershy", shape=ellipse, height=1.25, width=1];
+    id1031 [label="PinkiePie" , shape=ellipse, height=1.25, width=1];
+    unk0   [label="Discord"   , shape=ellipse, height=1.25, width=1];
+
+    id1030 -- id1031;
+    id1030 -- unk0;
+    id1031 -- unk0;
+}
