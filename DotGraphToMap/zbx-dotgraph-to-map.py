@@ -2,18 +2,19 @@ import sys as m_sys
 import os as m_os
 import re as m_re
 import json as m_json
+
 from collections import namedtuple as ntuple
 from pyzabbix import ZabbixAPI as CZbx
 
 #######################################
 
-str_opt_path: str = m_os.path.splitext(m_os.path.realpath(__file__))[0] + '.json'
+tx_optpath: str = m_os.path.splitext(m_os.path.realpath(__file__))[0] + '.json'
 
-with open(str_opt_path, 'r+t') as rd_js:
-    dct_opt: dict = m_json.load(rd_js)
+with open(tx_optpath, 'r+t') as rd_js:
+    tr_opt: dict = m_json.load(rd_js)
 
-str_file_dot_path: str = m_os.path.abspath(m_sys.argv[1])
-str_file_json_path: str = m_os.path.splitext(str_file_dot_path)[0] + '.json'
+tx_filedot_path: str = m_os.path.abspath(m_sys.argv[1])
+tx_filejson_path: str = m_os.path.splitext(tx_filedot_path)[0] + '.json'
 
 #######################################
 
@@ -22,341 +23,340 @@ str_file_json_path: str = m_os.path.splitext(str_file_dot_path)[0] + '.json'
 # Parse input dot and json
 # # #
 
-def _gv_plaintxt_line_parse(str_line_i: str) -> list:
-    _gv_plaintxt_line_parse.re_neq_find  = m_re.compile(r'[^\\]"')
-    _gv_plaintxt_line_parse.re_wsp_find  = m_re.compile(r'\s')
-    _gv_plaintxt_line_parse.re_num_match = m_re.compile(r'-|\d')
+def _gv_plaintxt_line_parse(i_tx_line: str) -> list:
+    re_neq_find  = _gv_plaintxt_line_parse.re_neq_find  = m_re.compile(r'[^\\]"')
+    re_wsp_find  = _gv_plaintxt_line_parse.re_wsp_find  = m_re.compile(r'\s')
+    re_num_match = _gv_plaintxt_line_parse.re_num_match = m_re.compile(r'-|\d')
 
-    lst_ret: list = []
+    cl_ret: list = []
 
-    num_pos: int = 0
+    nm_pos: int = 0
 
-    while num_pos < len(str_line_i):
-        if str_line_i[num_pos] == '"':
-            num_pos0 = num_pos + 1
-            obj_rem = _gv_plaintxt_line_parse.re_neq_find.search(str_line_i, num_pos0)
+    while nm_pos < len(i_tx_line):
+        if i_tx_line[nm_pos] == '"':
+            nm_pos0 = nm_pos + 1
+            ob_rem = re_neq_find.search(i_tx_line, nm_pos0)
 
-            if obj_rem is None:
-                if str_line_i[num_pos0] != '"':
+            if ob_rem is None:
+                if i_tx_line[nm_pos0] != '"':
                     raise ValueError('Unclosed quotation')
 
-                num_pos += 3
-                num_pos1 = num_pos0
+                nm_pos += 3
+                nm_pos1 = nm_pos0
             else:
-                num_pos = obj_rem.end() + 1
-                num_pos1 = obj_rem.start() + 1
+                nm_pos = ob_rem.end() + 1
+                nm_pos1 = ob_rem.start() + 1
 
-            lst_ret.append(str_line_i[num_pos0:num_pos1].replace(r'\"', r'"'))
+            cl_ret.append(i_tx_line[nm_pos0:nm_pos1].replace(r'\"', r'"'))
         else:
-            num_pos0 = num_pos
-            obj_rem = _gv_plaintxt_line_parse.re_wsp_find.search(str_line_i, num_pos)
+            nm_pos0 = nm_pos
+            ob_rem = re_wsp_find.search(i_tx_line, nm_pos)
 
-            if _gv_plaintxt_line_parse.re_num_match.match(str_line_i[num_pos0]) is None:
-                if obj_rem is None:
-                    lst_ret.append(str_line_i[num_pos:])
+            if re_num_match.match(i_tx_line[nm_pos0]) is None:
+                if ob_rem is None:
+                    cl_ret.append(i_tx_line[nm_pos:])
                     break
                 else:
-                    num_pos = obj_rem.end()
-                    num_pos1 = obj_rem.start()
-                    lst_ret.append(str_line_i[num_pos0:num_pos1])
+                    nm_pos = ob_rem.end()
+                    nm_pos1 = ob_rem.start()
+                    cl_ret.append(i_tx_line[nm_pos0:nm_pos1])
             else:
-                if obj_rem is None:
-                    lst_ret.append(float(str_line_i[num_pos:]))
+                if ob_rem is None:
+                    cl_ret.append(float(i_tx_line[nm_pos:]))
                     break
                 else:
-                    num_pos = obj_rem.end()
-                    num_pos1 = obj_rem.start()
-                    lst_ret.append(float(str_line_i[num_pos0:num_pos1]))
+                    nm_pos = ob_rem.end()
+                    nm_pos1 = ob_rem.start()
+                    cl_ret.append(float(i_tx_line[nm_pos0:nm_pos1]))
 
-    return lst_ret
-
-
-TZbxEdge = ntuple('TZbxEdge', ['icon', 'edge_d'])
-
-TZbxShape = ntuple('TZbxShape', ['x', 'y', 'width', 'height'])
-
-TGraph = ntuple('TGraph', ['width', 'height', 'node_l', 'edge_l'])
-
-TGNode = ntuple('TGNode', ['name', 'xpoint', 'ypoint', 'width', 'height', 'label', 'zbx_hostid', 'zbx_edge'])
-
-TGEdge = ntuple('TGEdge', ['tail', 'head'])
+    return cl_ret
 
 
-def input_parse(i_dct_opt: dict) -> object:
-    dct_opt = i_dct_opt
+СZbxEdge = ntuple('TZbxEdge', ['icon', 'edge_d'])
 
-    with open(str_file_json_path, 'r+t') as rd_js:
-        dct_cnn: dict = m_json.load(rd_js)
+СZbxShape = ntuple('TZbxShape', ['x', 'y', 'width', 'height'])
 
-    obj_node_edge_d: dict = dict([(tpl_kv[0], TZbxEdge(icon=tpl_kv[1]['map_icon_off'], edge_d=tpl_kv[1]['map_edge'])) for tpl_kv in dct_cnn.items()])
-    del dct_cnn
+СGraph = ntuple('TGraph', ['width', 'height', 'node_l', 'edge_l'])
 
-    with m_os.popen('{0} -T plain-ext "{1}"'.format(dct_opt['dot_engine'], str_file_dot_path)) as rd:
-        str_grtext: str = rd.read()
+СGNode = ntuple('TGNode', ['name', 'xpoint', 'ypoint', 'width', 'height', 'label', 'zbx_hostid', 'zbx_edge'])
 
-    num_mode: int = 0
+СGEdge = ntuple('TGEdge', ['tail', 'head'])
 
-    for str_l in str_grtext.split('\n'):
-        lst_gv_attr: list = _gv_plaintxt_line_parse(str_l)
 
-        if num_mode == 0:  # graph
-            if lst_gv_attr[0] != 'graph':
+def _input_parse(i_kv_opt: dict) -> object:
+    kv_opt = i_kv_opt
+
+    with open(tx_filejson_path, 'r+t') as rd_js:
+        kv_cnn: dict = m_json.load(rd_js)
+
+    ob_node_edge_d: dict = dict([(tpl_kv[0], СZbxEdge(icon=tpl_kv[1]['map_icon_off'], edge_d=tpl_kv[1]['map_edge'])) for tpl_kv in kv_cnn.items()])
+    del kv_cnn
+
+    with m_os.popen('{0} -T plain-ext "{1}"'.format(kv_opt['dot_engine'], tx_filedot_path)) as rd:
+        tx_grtext: str = rd.read()
+
+    nm_mode: int = 0
+
+    for tx_l in tx_grtext.split('\n'):
+        cl_gv_attr: list = _gv_plaintxt_line_parse(tx_l)
+
+        if nm_mode == 0:  # graph
+            if cl_gv_attr[0] != 'graph':
                 raise ValueError('Invalid data: unknown line prefix.')
 
-            obj_graph: TGraph = TGraph(width=lst_gv_attr[2], height=lst_gv_attr[3], node_l=[], edge_l=[])
-            num_mode += 1
+            ob_graph: СGraph = СGraph(width=cl_gv_attr[2], height=cl_gv_attr[3], node_l=[], edge_l=[])
+            nm_mode += 1
         else:
-            if lst_gv_attr[0] not in ['node', 'edge', 'stop']:
+            if cl_gv_attr[0] not in ['node', 'edge', 'stop']:
                 raise ValueError('Invalid data: unknown line prefix.')
 
-            if lst_gv_attr[0] == 'node':
-                obj_node_edge = obj_node_edge_d[lst_gv_attr[1]]
+            if cl_gv_attr[0] == 'node':
+                ob_node_edge = ob_node_edge_d[cl_gv_attr[1]]
 
-                if str(lst_gv_attr[1]).startswith('id'):
-                    obj_graph.node_l.append(
-                        TGNode(
-                            name=lst_gv_attr[1]
-                            ,xpoint=lst_gv_attr[2]
-                            ,ypoint=lst_gv_attr[3]
-                            ,width=lst_gv_attr[4]
-                            ,height=lst_gv_attr[5]
-                            ,label=lst_gv_attr[6]
-                            ,zbx_hostid=str(lst_gv_attr[1])[2:]
-                            ,zbx_edge=obj_node_edge
+                if str(cl_gv_attr[1]).startswith('id'):
+                    ob_graph.node_l.append(
+                        СGNode(
+                            name=cl_gv_attr[1]
+                            ,xpoint=cl_gv_attr[2]
+                            ,ypoint=cl_gv_attr[3]
+                            ,width=cl_gv_attr[4]
+                            ,height=cl_gv_attr[5]
+                            ,label=cl_gv_attr[6]
+                            ,zbx_hostid=str(cl_gv_attr[1])[2:]
+                            ,zbx_edge=ob_node_edge
                         )
                     )
                 else:
-                    obj_graph.node_l.append(
-                        TGNode(
-                            name=lst_gv_attr[1]
-                            ,xpoint=lst_gv_attr[2]
-                            ,ypoint=lst_gv_attr[3]
-                            ,width=lst_gv_attr[4]
-                            ,height=lst_gv_attr[5]
-                            ,label=lst_gv_attr[6]
+                    ob_graph.node_l.append(
+                        СGNode(
+                            name=cl_gv_attr[1]
+                            ,xpoint=cl_gv_attr[2]
+                            ,ypoint=cl_gv_attr[3]
+                            ,width=cl_gv_attr[4]
+                            ,height=cl_gv_attr[5]
+                            ,label=cl_gv_attr[6]
                             ,zbx_hostid=None
-                            ,zbx_edge=obj_node_edge
+                            ,zbx_edge=ob_node_edge
                         )
                     )
 
-            if lst_gv_attr[0] == 'edge':
-                obj_graph.edge_l.append(TGEdge(tail=lst_gv_attr[1], head=lst_gv_attr[2]))
+            if cl_gv_attr[0] == 'edge':
+                ob_graph.edge_l.append(СGEdge(tail=cl_gv_attr[1], head=cl_gv_attr[2]))
 
-            if lst_gv_attr[0] == 'stop':
+            if cl_gv_attr[0] == 'stop':
                 break
 
-    return obj_graph
+    return ob_graph
 
 
 # # #
 # Creating Zabbix map.
 # # #
 
-obj_graph: TGraph = input_parse(dct_opt)
-obj_zbx: CZbx = CZbx(dct_opt["zbx_host"])
-obj_zbx.login(dct_opt['zbx_login'], dct_opt['zbx_password'])
 
-def _zbxmap_xy_scale_calc(i_obj_graph: TGraph, i_num_scale: int) -> tuple:
-    if i_obj_graph.width >= i_obj_graph.height:
-        return bool(0), float(i_num_scale / (i_obj_graph.height)) / 2, float(i_num_scale / (i_obj_graph.height)) / 2
+def _zbxmap_xy_scale_calc(i_ob_graph: СGraph, i_nm_scale: int) -> tuple:
+    if i_ob_graph.width >= i_ob_graph.height:
+        return bool(0), float(i_nm_scale / (i_ob_graph.height)) / 2, float(i_nm_scale / (i_ob_graph.height)) / 2
     else:
-        return bool(1), float(i_num_scale / (i_obj_graph.width)) / 2, float(i_num_scale / (i_obj_graph.width)) / 2
+        return bool(1), float(i_nm_scale / (i_ob_graph.width)) / 2, float(i_nm_scale / (i_ob_graph.width)) / 2
 
 
-def _zbxmap_calc\
-(   i_obj_graph: TGraph
-,   i_num_xsc: float
-,   i_num_ysc: float
-,   i_bln_invertxy: bool
+def _zbxmap_calc(
+        i_ob_graph: СGraph
+    ,   i_nm_xscale: float
+    ,   i_nm_yscale: float
+    ,   i_bl_invertxy: bool
 ) -> dict:
-    if i_bln_invertxy:
+    if i_bl_invertxy:
         return \
-            {   'width' : str(int(i_obj_graph.height * 2 * i_num_ysc))
-            ,   'height': str(int(i_obj_graph.width * 2 * i_num_xsc))
+            {   'width' : str(int(i_ob_graph.height * 2 * i_nm_yscale))
+            ,   'height': str(int(i_ob_graph.width * 2 * i_nm_xscale))
             }
     else:
         return \
-            {   'height': str(int(i_obj_graph.height * 2 * i_num_ysc))
-            ,   'width' : str(int(i_obj_graph.width * 2 * i_num_xsc))
+            {   'height': str(int(i_ob_graph.height * 2 * i_nm_yscale))
+            ,   'width' : str(int(i_ob_graph.width * 2 * i_nm_xscale))
             }
 
 
-def _zbxmap_shape_calc\
-(   i_obj_graph: TGraph
-,   i_num_xsc: float
-,   i_num_ysc: float
-,   i_bln_invertxy: bool
-,   i_str_dot_eng: str
-,   i_obj_node: TGNode
+def _zbxmap_shape_calc(
+        i_ob_graph: СGraph
+    ,   i_nm_xscale: float
+    ,   i_nm_yscale: float
+    ,   i_bl_invertxy: bool
+    ,   i_tx_doteng: str
+    ,   i_ob_node: СGNode
 ) -> dict:
-    if i_str_dot_eng == 'neato':
-        num_x: int = int((i_obj_graph.width + i_obj_node.xpoint * 0.85) * i_num_xsc)
-        num_y: int = int((i_obj_graph.height + i_obj_node.ypoint * 0.85) * i_num_ysc)
-        num_w: int = int(i_obj_node.width * i_num_xsc)
-        num_h: int = int(i_obj_node.height * i_num_ysc)
-    elif i_str_dot_eng == 'fdp':
-        num_x: int = int((i_obj_node.xpoint * 1.9) * i_num_xsc)
-        num_y: int = int((i_obj_node.ypoint * 1.9) * i_num_ysc)
-        num_w: int = int(i_obj_node.width * i_num_xsc)
-        num_h: int = int(i_obj_node.height * i_num_ysc)
-    elif i_str_dot_eng == 'sfdp':
-        num_x: int = int((i_obj_node.xpoint * 1.9) * i_num_xsc)
-        num_y: int = int((i_obj_node.ypoint * 1.9) * i_num_ysc)
-        num_w: int = int(i_obj_node.width * i_num_xsc)
-        num_h: int = int(i_obj_node.height * i_num_ysc)
+    if i_tx_doteng == 'neato':
+        nm_x: int = int((i_ob_graph.width + i_ob_node.xpoint * 0.85) * i_nm_xscale)
+        nm_y: int = int((i_ob_graph.height + i_ob_node.ypoint * 0.85) * i_nm_yscale)
+        nm_w: int = int(i_ob_node.width * i_nm_xscale)
+        nm_h: int = int(i_ob_node.height * i_nm_yscale)
+    elif i_tx_doteng == 'fdp':
+        nm_x: int = int((i_ob_node.xpoint * 1.9) * i_nm_xscale)
+        nm_y: int = int((i_ob_node.ypoint * 1.9) * i_nm_yscale)
+        nm_w: int = int(i_ob_node.width * i_nm_xscale)
+        nm_h: int = int(i_ob_node.height * i_nm_yscale)
+    elif i_tx_doteng == 'sfdp':
+        nm_x: int = int((i_ob_node.xpoint * 1.9) * i_nm_xscale)
+        nm_y: int = int((i_ob_node.ypoint * 1.9) * i_nm_yscale)
+        nm_w: int = int(i_ob_node.width * i_nm_xscale)
+        nm_h: int = int(i_ob_node.height * i_nm_yscale)
     else:
-        raise Exception('Graphviz engine not supported')
+        raise Exception(f'Graphviz engine "{i_tx_doteng}" is not supported')
 
-    if i_bln_invertxy:
-        return {'x': num_y, 'y': num_x, 'width': num_h, 'height': num_w}
+    if i_bl_invertxy:
+        return {'x': nm_y, 'y': nm_x, 'width': nm_h, 'height': nm_w}
     else:
-        return {'x': num_x, 'y': num_y, 'width': num_w, 'height': num_h}
+        return {'x': nm_x, 'y': nm_y, 'width': nm_w, 'height': nm_h}
 
 
-TGLineDecor = ntuple('TGLineDecor', ['color', 'drawtype'])
+CGLineDecor = ntuple('TGLineDecor', ['color', 'drawtype'])
 
 
-def _opt_line_decor_parse(i_dct_opt_ld: dict) -> dict:
-    dct_opt_ld: dict = i_dct_opt_ld.copy()
+def _opt_line_decor_parse(i_kv_opt_ld: dict) -> dict:
+    kv_opt_ld: dict = i_kv_opt_ld.copy()
 
-    for str_key in ['ok', 'ncl', 'inf', 'wrn', 'avg', 'hgh', 'dss']:
-        if str_key not in dct_opt_ld:
-            dct_opt_ld[str_key] = TGLineDecor(color=None, drawtype=None)
+    for tx_key in ['ok', 'ncl', 'inf', 'wrn', 'avg', 'hgh', 'dss']:
+        if tx_key not in kv_opt_ld:
+            kv_opt_ld[tx_key] = CGLineDecor(color=None, drawtype=None)
         else:
-            dct_opt_ld[str_key] = TGLineDecor\
-                (   color=dct_opt_ld[str_key].get('color', None)
-                ,   drawtype=dct_opt_ld[str_key].get('drawtype', None))
+            kv_opt_ld[tx_key] = CGLineDecor\
+                (   color=kv_opt_ld[tx_key].get('color', None)
+                ,   drawtype=kv_opt_ld[tx_key].get('drawtype', None))
 
-    return dct_opt_ld
-
-
-TZbxTrg = ntuple('TZbxTrigger', ['description', 'expression', 'recovery_expression', 'severity'])
+    return kv_opt_ld
 
 
-def _zbx_trg_find(i_obj_gnode_head: TGNode, i_obj_gnode_tail: TGNode) -> dict:
-    if i_obj_gnode_head.zbx_hostid is None:
+def _zbx_trg_find(i_ob_gnode_head: СGNode, i_ob_gnode_tail: СGNode, i_ob_zbxapi: CZbx) -> dict:
+    if i_ob_gnode_head.zbx_hostid is None:
         return {}
 
-    dct_zbx_trg_filt: dict = i_obj_gnode_head.zbx_edge.edge_d[i_obj_gnode_tail.name]
-    str_zitemid_d: dict = {}
+    kv_zbx_trg_filt: dict = i_ob_gnode_head.zbx_edge.edge_d[i_ob_gnode_tail.name]
+    tx_zitemid_kv: dict = {}
 
-    for zbxitem_key_it in dct_zbx_trg_filt['item']:
-        dct_zitem_l: list = obj_zbx.item.get(hostids=[i_obj_gnode_head.zbx_hostid], search={'key_': zbxitem_key_it})
-        str_zitemid_d.update(dict([(str(dct_zitem['itemid']), str(dct_zitem['key_'])) for dct_zitem in dct_zitem_l]))
+    for zbxitem_key_it in kv_zbx_trg_filt['item']:
+        kv_zitem_l: list = i_ob_zbxapi.item.get(hostids=[i_ob_gnode_head.zbx_hostid], search={'key_': zbxitem_key_it})
+        tx_zitemid_kv.update(dict([(str(kv_zitem['itemid']), str(kv_zitem['key_'])) for kv_zitem in kv_zitem_l]))
 
-    obj_ztrg_d: dict = {}
+    ob_zbxtrigger_d: dict = {}
 
-    for zbxtrg_name_it in dct_zbx_trg_filt['description']:
-        for dct_ztrg \
-        in obj_zbx.trigger.get(hostids=[i_obj_gnode_head.zbx_hostid], itemids=list(str_zitemid_d.keys()), search={'description': zbxtrg_name_it}):
-            for dct_ztrg in obj_zbx.trigger.get(
-                        hostids=[i_obj_gnode_head.zbx_hostid]
-                    ,   itemids=list(str_zitemid_d.keys())
-                    ,   search={'description': zbxtrg_name_it}):
+    for zbxtrigger_name_it in kv_zbx_trg_filt['description']:
+        for kv_zbxtrigger \
+        in i_ob_zbxapi.trigger.get(
+                    hostids=[i_ob_gnode_head.zbx_hostid]
+                ,   itemids=list(tx_zitemid_kv.keys())
+                ,   search={'description': zbxtrigger_name_it}):
+            if str(kv_zbxtrigger['triggerid']) not in ob_zbxtrigger_d:
+                ob_zbxtrigger_d[str(kv_zbxtrigger['triggerid'])] = int(kv_zbxtrigger['priority'])
 
-                if str(dct_ztrg['triggerid']) not in obj_ztrg_d:
-                    obj_ztrg_d[str(dct_ztrg['triggerid'])] = int(dct_ztrg['priority'])
-
-    return obj_ztrg_d
+    return ob_zbxtrigger_d
 
 
-dct_zmap: dict \
-=   {   'name': m_os.path.basename(str_file_dot_path)
-    ,   'private': 0
-    ,   'label_type': 0
-    ,   'severity_min': 2
-    }
+def _zbx_map_create(i_ob_graph: СGraph, i_ob_zbxapi: CZbx) -> None:
+    kv_zbx_map_arg: dict \
+    =   {   'name': m_os.path.basename(tx_filedot_path)
+        ,   'private': 0
+        ,   'label_type': 0
+        ,   'severity_min': 2
+        }
 
-bln_invert_xy, num_xsc, num_ysc = _zbxmap_xy_scale_calc(obj_graph, dct_opt['zbx_map_height'])
-dct_zmap.update(_zbxmap_calc(obj_graph, num_xsc, num_ysc, bln_invert_xy))
+    bl_invertxy, nm_xscale, nm_yscale = _zbxmap_xy_scale_calc(i_ob_graph, tr_opt['zbx_map_height'])
+    kv_zbx_map_arg.update(_zbxmap_calc(i_ob_graph, nm_xscale, nm_yscale, bl_invertxy))
 
-dct_zmap_node_l: list = []
+    kv_zbxmap_element_cl: list = []
 
-for num_zmnode_id in range(0, len(obj_graph.node_l)):
-    obj_node: TGNode = obj_graph.node_l[num_zmnode_id]
+    for nm_zmnode_id in range(0, len(i_ob_graph.node_l)):
+        ob_node: СGNode = i_ob_graph.node_l[nm_zmnode_id]
 
-    dct_zmap_node: dict = {'selementid': str(num_zmnode_id), 'label': str(obj_node.label)}
+        kv_zmap_node: dict = {'selementid': str(nm_zmnode_id), 'label': str(ob_node.label)}
 
-    if obj_node.zbx_hostid is None:
-        dct_zmap_node['elementtype'] = 4
+        if ob_node.zbx_hostid is None:
+            kv_zmap_node['elementtype'] = 4
+        else:
+            kv_zmap_node['elementtype'] = 0
+            kv_zmap_node['elements'] = [{'hostid': str(ob_node.zbx_hostid)}]
+
+        for kv_zimg in i_ob_zbxapi.image.get(output=['imageid', 'name'], search={'name': ob_node.zbx_edge.icon}):
+            if kv_zimg['name'] == ob_node.zbx_edge.icon:
+                kv_zmap_node['iconid_off'] = str(kv_zimg['imageid'])
+
+        kv_zmap_node.update(_zbxmap_shape_calc(i_ob_graph, nm_xscale, nm_yscale, bl_invertxy, tr_opt['dot_engine'], ob_node))
+        kv_zbxmap_element_cl.append(kv_zmap_node)
+
+    kv_zbx_map_arg['selements'] = kv_zbxmap_element_cl
+
+    kv_opt_ld: dict = _opt_line_decor_parse(tr_opt['line_decor'])
+    tpl_zbx_trg_severity: tuple = ('ncl', 'inf', 'wrn', 'avg', 'hgh', 'dss')
+
+    kv_zbxmap_link_cl: list = []
+
+    for nm_idx in range(0, len(i_ob_graph.edge_l)):
+        ob_edge: СGEdge = i_ob_graph.edge_l[nm_idx]
+
+        nm_zmnode_id_tail: int = -1
+        nm_zmnode_id_head: int = -1
+
+        for nm_zmnode_id in range(0, len(i_ob_graph.node_l)):
+            ob_node: СGNode = i_ob_graph.node_l[nm_zmnode_id]
+
+            if ob_node.name == ob_edge.tail:
+                ob_node_tail: СGNode = ob_node
+                nm_zmnode_id_tail = nm_zmnode_id
+
+            if ob_node.name == ob_edge.head:
+                ob_node_head: СGNode = ob_node
+                nm_zmnode_id_head = nm_zmnode_id
+
+        if nm_zmnode_id_tail == -1 or nm_zmnode_id_head == -1:
+            raise ValueError('Tail or head node is not found.')
+
+        kv_zbxmap_link: dict = {'selementid1': str(nm_zmnode_id_head), 'selementid2': str(nm_zmnode_id_tail)}
+
+        if kv_opt_ld['ok'].color is not None:
+            kv_zbxmap_link['color'] = kv_opt_ld['ok'].color
+
+        kv_zbxmap_linktriger_cl: list = []
+
+        kv_zbxtriger = _zbx_trg_find(ob_node_head, ob_node_tail, i_ob_zbxapi)
+        kv_zbxtriger.update(_zbx_trg_find(ob_node_tail, ob_node_head, i_ob_zbxapi))
+
+        for tpl_kv in kv_zbxtriger.items():
+            kv_zbxmap_linktriger: dict = {'triggerid': str(tpl_kv[0])}
+            opt_ld: CGLineDecor = kv_opt_ld[tpl_zbx_trg_severity[tpl_kv[1]]]
+
+            if opt_ld.drawtype is not None:
+                kv_zbxmap_linktriger['drawtype'] = opt_ld.drawtype
+
+            if opt_ld.color is not None:
+                kv_zbxmap_linktriger['color'] = str(opt_ld.color)
+
+            kv_zbxmap_linktriger_cl.append(kv_zbxmap_linktriger)
+
+        kv_zbxmap_link['linktriggers'] = kv_zbxmap_linktriger_cl
+        kv_zbxmap_link_cl.append(kv_zbxmap_link)
+
+    kv_zbx_map_arg['links'] = kv_zbxmap_link_cl
+
+    ''''#!!!DBG: Assertion
+    with open(r'd:\try.json', 'w+t') as wr_js:
+        m_json.dump(kv_zbx_map_arg, wr_js)
+    '''
+
+    tx_zbx_mapid: str = None
+
+    for kv_zbx_map in i_ob_zbxapi.map.get(output=['sysmapid', 'name'], search={'name': kv_zbx_map_arg['name']}):
+        if kv_zbx_map['name'] == kv_zbx_map_arg['name']:
+            tx_zbx_mapid = str(kv_zbx_map['sysmapid'][0])
+
+    if tx_zbx_mapid is None:
+        kv_zbx_map = i_ob_zbxapi.map.create(**kv_zbx_map_arg)
     else:
-        dct_zmap_node['elementtype'] = 0
-        dct_zmap_node['elements'] = [{'hostid': str(obj_node.zbx_hostid)}]
+        kv_zbx_map_arg['sysmapid'] = tx_zbx_mapid
+        kv_zbx_map = i_ob_zbxapi.map.update(**kv_zbx_map_arg)
 
-    for dct_zimg in obj_zbx.image.get(output=['imageid', 'name'], search={'name': obj_node.zbx_edge.icon}):
-        if dct_zimg['name'] == obj_node.zbx_edge.icon:
-            dct_zmap_node['iconid_off'] = str(dct_zimg['imageid'])
 
-    dct_zmap_node.update(_zbxmap_shape_calc( obj_graph, num_xsc, num_ysc, bln_invert_xy, dct_opt['dot_engine'], obj_node))
-    dct_zmap_node_l.append(dct_zmap_node)
-
-dct_zmap['selements'] = dct_zmap_node_l
-
-dct_opt_ld: dict = _opt_line_decor_parse(dct_opt['line_decor'])
-tpl_zbx_trg_severity: tuple = ('ncl', 'inf', 'wrn', 'avg', 'hgh', 'dss')
-
-dct_zmap_edge_l: list = []
-
-for num_idx in range(0, len(obj_graph.edge_l)):
-    obj_edge: TGEdge = obj_graph.edge_l[num_idx]
-
-    num_zmnode_id_tail: int = -1
-    num_zmnode_id_head: int = -1
-
-    for num_zmnode_id in range(0, len(obj_graph.node_l)):
-        obj_node: TGNode = obj_graph.node_l[num_zmnode_id]
-
-        if obj_node.name == obj_edge.tail:
-            obj_node_tail: TGNode = obj_node
-            num_zmnode_id_tail = num_zmnode_id
-
-        if obj_node.name == obj_edge.head:
-            obj_node_head: TGNode = obj_node
-            num_zmnode_id_head = num_zmnode_id
-
-    if num_zmnode_id_tail == -1 or num_zmnode_id_head == -1:
-        raise ValueError('Tail or head node is not found.')
-
-    dct_zmap_edge: dict = {'selementid1': str(num_zmnode_id_head), 'selementid2': str(num_zmnode_id_tail)}
-
-    if dct_opt_ld['ok'].color is not None:
-        dct_zmap_edge['color'] = dct_opt_ld['ok'].color
-
-    dct_zmap_edgetrg_l: list = []
-
-    dct_zbx_trg = _zbx_trg_find(obj_node_head, obj_node_tail)
-    dct_zbx_trg.update(_zbx_trg_find(obj_node_tail, obj_node_head))
-
-    for tpl_kv in dct_zbx_trg.items():
-        dct_zmap_edgetrg: dict = {'triggerid': str(tpl_kv[0])}
-        opt_ld: TGLineDecor = dct_opt_ld[tpl_zbx_trg_severity[tpl_kv[1]]]
-
-        if opt_ld.drawtype is not None:
-            dct_zmap_edgetrg['drawtype'] = opt_ld.drawtype
-
-        if opt_ld.color is not None:
-            dct_zmap_edgetrg['color'] = str(opt_ld.color)
-
-        dct_zmap_edgetrg_l.append(dct_zmap_edgetrg)
-
-    dct_zmap_edge['linktriggers'] = dct_zmap_edgetrg_l
-    dct_zmap_edge_l.append(dct_zmap_edge)
-
-dct_zmap['links'] = dct_zmap_edge_l
-
-''''#!!!DBG: Assertion
-with open(r'd:\try.json', 'w+t') as wr_js:
-    m_json.dump(dct_zmap, wr_js)
-'''
-
-str_zbx_mapid: str = None
-
-for dct_zbx_map in obj_zbx.map.get(output=['sysmapid', 'name'], search={'name': dct_zmap['name']}):
-    if dct_zbx_map['name'] == dct_zmap['name']:
-        str_zbx_mapid = str(dct_zbx_map['sysmapid'][0])
-
-if str_zbx_mapid is None:
-    dct_zbx_map = obj_zbx.map.create(**dct_zmap)
-else:
-    dct_zmap['sysmapid'] = str_zbx_mapid
-    dct_zbx_map = obj_zbx.map.update(**dct_zmap)
+ob_graph: СGraph = _input_parse(tr_opt)
+ob_zbxapi: CZbx = CZbx(tr_opt["zbx_host"])
+ob_zbxapi.login(tr_opt['zbx_login'], tr_opt['zbx_password'])
+_zbx_map_create(ob_graph, ob_zbxapi)

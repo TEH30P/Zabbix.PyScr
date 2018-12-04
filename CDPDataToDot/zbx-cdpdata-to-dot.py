@@ -1,137 +1,142 @@
 import os as m_os
-from pyzabbix import ZabbixAPI as CZbx
 import json as m_json
 import re as m_re
 
-#######################################
-
-str_opt_path: str = m_os.path.splitext(m_os.path.realpath(__file__))[0] + '.json'
-
-with open(str_opt_path, 'r+t') as rd_js:
-    dct_opt: dict = m_json.load(rd_js)
+from pyzabbix import ZabbixAPI as CZbx
 
 #######################################
 
+tx_optpath: str = m_os.path.splitext(m_os.path.realpath(__file__))[0] + '.json'
 
-def cdp_icon_get(i_cdp: str) -> str:
-    for tpl_kv in dict(dct_opt['node_icon_off']).items():
-        if m_re.fullmatch(tpl_kv[0], i_cdp) is not None:
-            return str(tpl_kv[1])
+with open(tx_optpath, 'r+t') as rd_js:
+    tr_opt: dict = m_json.load(rd_js)
 
-    return str(dct_opt['node_icon_def'])
+#######################################
 
 
-obj_zbx = CZbx(dct_opt["zbx_host"])
-obj_zbx.login(dct_opt['zbx_login'], dct_opt['zbx_password'])
+def _cdp_icon_get(i_cdp: str) -> str:
+    for tp_kv in dict(tr_opt['node_icon_off']).items():
+        if m_re.fullmatch(tp_kv[0], i_cdp, m_re.IGNORECASE) is not None:
+            return str(tp_kv[1])
 
-str_groupid_l = []
+    return str(tr_opt['node_icon_def'])
 
-for str_name in dct_opt["host_group_l"]:
-    for obj_hg in obj_zbx.hostgroup.get(output=["name"], search={"name": str_name}):
-        if obj_hg["name"] == str_name:
-            str_groupid_l += [obj_hg["groupid"]]
 
-dct_hid: dict = {}
-dct_hname: dict = {}
-str_hunk_s: set = set()
-tpl_hcnn_s: set = set()
-dct_hcnn_d: dict = {}
+ob_zbx = CZbx(tr_opt["zbx_host"])
+ob_zbx.login(tr_opt['zbx_login'], tr_opt['zbx_password'])
 
-for dct_h in obj_zbx.host.get(output=['name', 'host'], groupids=str_groupid_l):
-    zbx_item_get_para: dict = dct_opt['cdp_item_filt'].copy()
-    zbx_item_get_para['hostids'] = [dct_h['hostid']]
+tx_zbxgroupid_cl: list = []
 
-    str_cdp_nei_l: list = []
-    num_cdp_locif_oid_l: list = []
-    str_cdp: str = ''
+for tx_name in tr_opt["host_group_l"]:
+    for kv_zbxgroup in ob_zbx.hostgroup.get(output=['name'], search={'name': tx_name}):
+        if kv_zbxgroup['name'] == tx_name:
+            tx_zbxgroupid_cl += [kv_zbxgroup['groupid']]
 
-    for dct_i in obj_zbx.item.get(**zbx_item_get_para):  # output=['name', 'key_', 'state', 'status' 'lastclock', 'lastvalue'],:
-        if int(dct_i['type']) == 4 and int(dct_i['state']) == 0 and int(dct_i['status']) == 0:
-            str_iv: str = dct_i['lastvalue']
+tx_cdp_to_mapnode_kv: dict = {}
+tx_cdp_to_zbxhostname_kv: dict = {}
+tx_cdp_zbxunknown_st: set = set()
+tp_cdp_pair_st: set = set()
+tr_jsonres: dict = {}
+
+for kv_zbxhost in ob_zbx.host.get(output=['name', 'host'], groupids=tx_zbxgroupid_cl):
+    kv_zbx_item_get_arg: dict = tr_opt['cdp_item_filt'].copy()
+    kv_zbx_item_get_arg['hostids'] = [kv_zbxhost['hostid']]
+
+    tx_cdp_neighbour_cl: list = []
+    nm_snmpoid_localif_cl: list = []
+    tx_cdp: str = ''
+
+    for kv_zbxitem in ob_zbx.item.get(**kv_zbx_item_get_arg):
+        if int(kv_zbxitem['type']) == 4 and int(kv_zbxitem['state']) == 0 and int(kv_zbxitem['status']) == 0:
+            tx_zbxitem_lastval: str = kv_zbxitem['lastvalue']
         else:
             continue
 
-        str_i_snmp_oid: str = str(dct_i['snmp_oid'])
+        tx_zbxitem_snmpoid: str = str(kv_zbxitem['snmp_oid'])
 
-        if str_i_snmp_oid == '1.3.6.1.4.1.9.9.23.1.3.4.0':
-            str_cdp = str_iv
-            dct_hid[str_cdp] = 'id' + dct_h['hostid']
-            dct_hname[str_cdp] = dct_h['name']
-            str_hunk_s.discard(str_cdp)
-        elif str_i_snmp_oid.startswith('1.3.6.1.4.1.9.9.23.1.2.1.1.6.'):
-            str_cdp_nei_l.append(str_iv)
-            num_cdp_locif_oid = int(str_i_snmp_oid.split('.')[14])
-            num_cdp_locif_oid_l.append(num_cdp_locif_oid)
+        if tx_zbxitem_snmpoid == '1.3.6.1.4.1.9.9.23.1.3.4.0':
+            tx_cdp = tx_zbxitem_lastval
+            tx_cdp_to_mapnode_kv[tx_cdp] = 'id' + kv_zbxhost['hostid']
+            tx_cdp_to_zbxhostname_kv[tx_cdp] = kv_zbxhost['name']
+            tx_cdp_zbxunknown_st.discard(tx_cdp)
+        elif tx_zbxitem_snmpoid.startswith('1.3.6.1.4.1.9.9.23.1.2.1.1.6.'):
+            tx_cdp_neighbour_cl.append(tx_zbxitem_lastval)
+            nm_snmpoid_localif = int(tx_zbxitem_snmpoid.split('.')[14])
+            nm_snmpoid_localif_cl.append(nm_snmpoid_localif)
 
-            if str_iv not in dct_hid:
-                str_hunk_s.add(str_iv)
+            if tx_zbxitem_lastval not in tx_cdp_to_mapnode_kv:
+                tx_cdp_zbxunknown_st.add(tx_zbxitem_lastval)
 
-    tpl_hcnn_s |= set([(str_cdp, str_cdp_nei) for str_cdp_nei in str_cdp_nei_l])
-    dct_edge_filt_l: list = []
+    tp_cdp_pair_st |= set([(tx_cdp, tx_cdp_nei) for tx_cdp_nei in tx_cdp_neighbour_cl])
+    kv_jsonres_mapedge_filt_cl: list = []
 
-    for num_cdp_locif_oid in num_cdp_locif_oid_l:
-        dct_edge_filt: dict = dct_opt['edge_trigger'].copy()
-        dct_edge_filt['description'] = [str_it.replace('{#LOCAL_IF_OID}', str(num_cdp_locif_oid)) for str_it in list(dct_edge_filt['description'])]
-        dct_edge_filt['item'] = [str_it.replace('{#LOCAL_IF_OID}', str(num_cdp_locif_oid)) for str_it in list(dct_edge_filt['item'])]
+    for nm_snmpoid_localif in nm_snmpoid_localif_cl:
+        kv_edge_filt: dict = tr_opt['edge_trigger'].copy()
+        kv_edge_filt['description'] \
+            = [tx_it.replace('{#LOCAL_IF_OID}', str(nm_snmpoid_localif)) for tx_it in list(kv_edge_filt['description'])]
+        kv_edge_filt['item'] \
+            = [tx_it.replace('{#LOCAL_IF_OID}', str(nm_snmpoid_localif)) for tx_it in list(kv_edge_filt['item'])]
 
-        dct_edge_filt_l.append(dct_edge_filt)
+        kv_jsonres_mapedge_filt_cl.append(kv_edge_filt)
 
-    for str_cdp_nei in str_cdp_nei_l:
-        if (str_cdp_nei in dct_hcnn_d) or (str_cdp_nei in dct_hid):
+    for tx_cdp_neighbour in tx_cdp_neighbour_cl:
+        if (tx_cdp_neighbour in tr_jsonres) or (tx_cdp_neighbour in tx_cdp_to_mapnode_kv):
             continue
 
-        dct_hcnn_d[str_cdp_nei] = {'map_icon_off': cdp_icon_get(str_cdp_nei), 'map_edge': dict()}
+        tr_jsonres[tx_cdp_neighbour] = {'map_icon_off': _cdp_icon_get(tx_cdp_neighbour), 'map_edge': dict()}
 
-    if str_cdp not in dct_hcnn_d:
-        dct_hcnn_d[str_cdp] = \
-            {   'map_icon_off': cdp_icon_get(str_cdp)
-            ,   'map_edge': dict(zip(str_cdp_nei_l, dct_edge_filt_l))}
+    if tx_cdp not in tr_jsonres:
+        tr_jsonres[tx_cdp] = \
+            {   'map_icon_off': _cdp_icon_get(tx_cdp)
+            ,   'map_edge': dict(zip(tx_cdp_neighbour_cl, kv_jsonres_mapedge_filt_cl))}
     else:
-        tpl_hcnn = dct_hcnn_d[str_cdp]
-        tpl_hcnn['map_edge'] = dict(zip(str_cdp_nei_l, dct_edge_filt_l))
+        tr_jsonres[tx_cdp]['map_edge'] = dict(zip(tx_cdp_neighbour_cl, kv_jsonres_mapedge_filt_cl))
 
-num: int = 0
+nm: int = 0
 
-for hunk in str_hunk_s:
-    dct_hid[hunk] = 'unk{0}'.format(num)
-    num += 1
+for tx_it in tx_cdp_zbxunknown_st:
+    tx_cdp_to_mapnode_kv[tx_it] = f'unk{nm}'
+    nm += 1
 
-dct_hcnn_d = dict([(dct_hid[tpl_kv[0]], tpl_kv[1]) for tpl_kv in dct_hcnn_d.items()])
+# Replacing cdpGlobalDeviceId with the corresponding "dot" node names. And saving the result to "json" file.
 
-for str_key_it in dct_hcnn_d.keys():
-    dct_hcnn_edge = dct_hcnn_d[str_key_it]['map_edge']
-    dct_hcnn_d[str_key_it]['map_edge'] = dict([(dct_hid[tpl_kv[0]], tpl_kv[1]) for tpl_kv in dct_hcnn_edge.items()])
+tr_jsonres = dict([(tx_cdp_to_mapnode_kv[tp_kv[0]], tp_kv[1]) for tp_kv in tr_jsonres.items()])
 
-tpl_hcnnu_s = set([(tpl_hcnn[1], tpl_hcnn[0]) for tpl_hcnn in tpl_hcnn_s])
+for tx_it in tr_jsonres.keys():
+    tr_jsonres_edge = tr_jsonres[tx_it]['map_edge']
+    tr_jsonres[tx_it]['map_edge'] \
+        = dict([(tx_cdp_to_mapnode_kv[tp_kv[0]], tp_kv[1]) for tp_kv in tr_jsonres_edge.items()])
 
-for tpl_hcnn in tpl_hcnn_s:
-    if tpl_hcnn in tpl_hcnnu_s:
-        tpl_hcnnu_s.discard((tpl_hcnn[1], tpl_hcnn[0]))
+with open(tr_opt['file_json_path'], 'w+t') as wr_js:
+    m_json.dump(tr_jsonres, wr_js)
 
-# print(tpl_hcnn_s)
-# print(tpl_hcnnu_s)
-# print(hid_d)
+# Creating truly unique cdppair set.
 
-with open(dct_opt['file_dot_path'], 'w+t') as wr_dot:
+tp_cdppair_uniq_st = set([(tp_hcnn[1], tp_hcnn[0]) for tp_hcnn in tp_cdp_pair_st])
+
+for tp_cdppair in tp_cdp_pair_st:
+    if tp_cdppair in tp_cdppair_uniq_st:
+        tp_cdppair_uniq_st.discard((tp_cdppair[1], tp_cdppair[0]))
+
+# Generating "dot" file.
+
+with open(tr_opt['file_dot_path'], 'w+t') as wr_dot:
     wr_dot.write('graph Zbx {\n')
     wr_dot.write('    overlap=false; sep="+0";\n')
     wr_dot.write('    edge [splines=polyline];\n')
 
     wr_dot.write('\n')
 
-    for tpl_hid_kv in dct_hid.items():
-        if tpl_hid_kv[0] in dct_hname:
-            wr_dot.write('    {0} [label="{1}", shape=ellipse, height=1.25, width=1];\n'.format(tpl_hid_kv[1], dct_hname[tpl_hid_kv[0]]))
+    for tp_it in tx_cdp_to_mapnode_kv.items():
+        if tp_it[0] in tx_cdp_to_zbxhostname_kv:
+            wr_dot.write(
+                f'    {tp_it[1]} [label="{tx_cdp_to_zbxhostname_kv[tp_it[0]]}", shape=ellipse, height=1.25, width=1];\n')
         else:
-            wr_dot.write('    {0} [label="{1}", shape=ellipse, height=1.25, width=1];\n'.format(tpl_hid_kv[1], tpl_hid_kv[0]))
+            wr_dot.write(f'    {tp_it[1]} [label="{tp_it[0]}", shape=ellipse, height=1.25, width=1];\n')
 
     wr_dot.write('\n')
 
-    for tpl_hcnn in tpl_hcnnu_s:
-        wr_dot.write('    {0} -- {1};\n'.format(dct_hid[tpl_hcnn[0]], dct_hid[tpl_hcnn[1]]))
-        num += 1
+    for tp_cdppair in tp_cdppair_uniq_st:
+        wr_dot.write(f'    {tx_cdp_to_mapnode_kv[tp_cdppair[0]]} -- {tx_cdp_to_mapnode_kv[tp_cdppair[1]]};\n')
 
     wr_dot.write('}')
-
-with open(dct_opt['file_json_path'], 'w+t') as wr_js:
-    m_json.dump(dct_hcnn_d, wr_js)
